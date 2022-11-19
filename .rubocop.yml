@@ -1,4 +1,4 @@
-# .rubocop.yml for RB101 Lessons 2-5 (05 Oct 2020)
+# .rubocop.yml for non-RB101 courses (17 Mar 2021)
 
 AllCops:
   NewCops: disable
@@ -12,13 +12,17 @@ AllCops:
   DisplayStyleGuide: true
   # When specifying style guide URLs, any paths and/or fragments will be
   # evaluated relative to the base URL.
-  StyleGuideBaseURL: https://github.com/bbatsov/ruby-style-guide
+  StyleGuideBaseURL: https://rubystyle.guide/
   # What version of the Ruby interpreter is the inspected code intended to
   # run on? (If there is more than one, set this to the lowest version.)
-  TargetRubyVersion: 3.0
+  TargetRubyVersion: 2.4
 
 Style/BlockComments:
   Description: 'Do not use block comments.'
+  Enabled: false
+
+Style/ClassVars:
+  Description: 'Checks for uses of class variables.'
   Enabled: false
 
 Style/CommandLiteral:
@@ -63,7 +67,8 @@ Style/FrozenStringLiteralComment:
 
 Style/GuardClause:
   Description: Check for conditionals that can be replaced with guard clauses.
-  Enabled: false
+  Enabled: true
+  MinBodyLength: 1
 
 Style/HashSyntax:
   Description: >-
@@ -137,7 +142,18 @@ Style/ParenthesesAroundCondition:
 
 Style/PercentLiteralDelimiters:
   Description: 'Use `%`-literal delimiters consistently'
-  Enabled: false
+  Enabled: true
+  PreferredDelimiters:
+    '%':  ()
+    '%i': ()
+    '%I': ()
+    '%q': ()
+    '%Q': ()
+    '%r': ()
+    '%s': ()
+    '%w': ()
+    '%W': ()
+    '%x': ()
 
 Style/PerlBackrefs:
   Description: Avoid Perl-style regex back references.
@@ -171,7 +187,7 @@ Style/SafeNavigation:
                   This cop transforms usages of a method call safeguarded by
                   a check for the existance of the object to
                   safe navigation (`&.`).
-  Enabled: false
+  Enabled: true
 
 Style/SingleLineBlockParams:
   Description: Enforces the names of some block params.
@@ -210,7 +226,8 @@ Metrics/AbcSize:
 
 Metrics/BlockLength:
   Description: Limit size of blocks.
-  Enabled: false
+  Enabled: true
+  Max: 20
 
 Metrics/ClassLength:
   Description: 'Avoid classes longer than 100 lines of code.'
@@ -220,17 +237,17 @@ Layout/LineLength:
   Description: Limit lines to 80 characters.
   Enabled: true
   Max: 80
-  StyleGuide: https://github.com/bbatsov/ruby-style-guide#80-character-limits
+  StyleGuide: https://rubystyle.guide/#80-character-limits
   AllowURI: true
   URISchemes:
   - http
   - https
 
 Metrics/MethodLength:
-  Description: 'Avoid methods longer than 15 lines of code.'
+  Description: 'Avoid methods longer than 10 lines of code.'
   Enabled: true
   CountComments: false  # count full line comments?
-  Max: 15
+  Max: 10
 
 Lint/LiteralInInterpolation:
   Description: 'Avoid interpolating literals in strings'
@@ -285,10 +302,6 @@ Style/SlicingWithRange:
   Description: 'Checks that arrays are sliced with endless ranges instead of ary[start..-1]'
   Enabled: false
 
-Style/FormatStringToken:
-  Description: 'Use a consistent style for named format string tokens.'
-  Enabled: false
-
 Layout/EmptyLineAfterGuardClause:
   Description: 'Requires empty line after guard clause'
   Enabled: false
@@ -303,11 +316,11 @@ Naming/MethodParameterName:
 
 Style/ConditionalAssignment:
   Description: 'Use return value of conditional for assignment'
-  Enabled: false
+  Enabled: true
 
 Naming/AccessorMethodName:
   Description: 'Do not prefix reader method names with get_'
-  Enabled: false
+  Enabled: true
 
 Style/NegatedUnless:
   Description: 'Favor if over unless'
@@ -329,6 +342,10 @@ Style/CommentedKeyword:
   Description: 'Comments should not be on same line as def'
   Enabled: false
 
+Style/FormatStringToken:
+  Description: 'Prefer annotated tokens over unannotated'
+  Enabled: false
+
 Style/HashEachMethods:
   Description: 'each_key over keys.each'
   Enabled: false
@@ -341,6 +358,6 @@ Style/InverseMethods:
   Description: 'reject instead of reversed select'
   Enabled: false
 
-Style/ZeroLengthPredicate:
-  Description: 'empty? instead of length == 0'
+Style/MixinGrouping:
+  Description: 'mixins as separate statements'
   Enabled: false
