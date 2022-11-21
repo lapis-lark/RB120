@@ -1,12 +1,29 @@
-require 'byebug'
-
 module Displayable
   def clear_screen
     system('clear')
   end
 
   def display_welcome_message
-    puts "let's play some rock, paper, scissors!"
+    clear_screen
+    puts "let's play some #{Move::VALUES.join(', ')}!"
+    puts "the first person to #{RPSGame::PLAY_TO} points wins!"
+    puts "type 'rules' to see the rules or anything else to continue"
+    input = gets.chomp.downcase
+    display_rules if input == 'rules'
+    clear_screen
+  end
+
+  def display_rules
+    clear_screen
+    puts "you and your opponent will each choose a hand to throw."
+    puts "if your hand beats theirs, you gain a point, and vice versa."
+    puts "no one gets a point if there is a tie."
+    puts ''
+    Move::WIN_CONDITIONS.each do |k, v|
+      puts "#{k} beats: #{v.join(', ')}"
+    end
+    puts "\npress enter to continue"
+    gets
   end
 
   def display_choices
@@ -25,14 +42,19 @@ module Displayable
   end
 
   def display_move_history
+    puts
     human.move_history.size.times do |i|
-      puts "round #{i + 1}: #{human.move_history[i]} vs. #{computer.move_history[i]} [#{human.victory_history[i]}]"
+      puts "round #{i + 1}: #{human.move_history[i]} vs."\
+           " #{computer.move_history[i]} [#{human.victory_history[i]}]"
     end
+    puts
   end
 
   def display_scores
-    puts "#{human.name}: #{human.score}"
-    puts "#{computer.name}: #{computer.score}"
+    message = ("#{' ' * 10}#{human.name.upcase}: #{human.score}#{' ' * 10}"\
+         "#{computer.name.upcase}: #{computer.score}#{' ' * 10}")
+    puts message
+    puts "*#{'-' * message.size}*"
   end
 
   def display_grand_winner
@@ -42,15 +64,14 @@ module Displayable
       puts "#{computer.name} is the grand champion!"
       puts "better luck next time!"
     end
-
-    puts "final scores:"
-    display_scores
-    display_move_history
-    puts "thanks for playing ;)"
+    puts
+    display_goodbye_message
   end
 
   def display_goodbye_message
-    puts "thanks for playing!"
+    display_scores
+    display_move_history
+    puts "\nthanks for playing!"
   end
 end
 
@@ -104,26 +125,38 @@ class Human < Player
   FULL_MOVE = { 'r' => 'rock', 'p' => 'paper', 's' => 'scissors',
                 'l' => 'lizard', 'sp' => 'spock' }
   def set_name
-    puts "what's your name?"
-    self.name = gets.chomp
+    n = nil
+    loop do
+      puts "what's your name?"
+      n = gets.chomp
+      break unless n.strip.empty? || n.size > 16
+      puts "invalid input. please input a non-whitespace "\
+            "string less than 16 characters"
+    end
+    self.name = n.strip
   end
 
-  def choose
+  def valid_choice
     choice = nil
     loop do
-      puts "please enter 'r', 'p', 's', 'l', or 'sp' (rock, paper, scissors, lizard, spock)"
+      puts "please enter 'r', 'p', 's', 'l', or 'sp'"\
+           " (rock, paper, scissors, lizard, spock)"
       choice = gets.chomp
       break if Move::VALUES.include?(FULL_MOVE[choice])
       puts 'invalid input. try again.'
     end
-    choice = Move.new(FULL_MOVE[choice])
+    Move.new(FULL_MOVE[choice])
+  end
+
+  def choose
+    choice = valid_choice
     self.move = choice
     move_history << choice
   end
 end
 
 class Computer < Player
-  CPUS = { "randy random" => [Move::VALUES],
+  CPUS = { "randy random" => Move::VALUES,
            "it learns" => [Move::VALUES.sample],
            "it loses" => [Move::VALUES.sample] }
 
@@ -157,11 +190,15 @@ class RPSGame
   end
 
   def update_scores
+    history = human.victory_history
     if human.move > computer.move
       human.score += 1
-      human.victory_history << 'won'
+      history << 'won'
     elsif computer.move > human.move
       computer.score += 1
+      history << 'lost'
+    else
+      history << 'tied'
     end
   end
 
@@ -170,9 +207,9 @@ class RPSGame
   end
 
   def play_again?
-    puts 'input enter to continue anything else to quit early'
-    ans = gets.chomp
-    ans.empty?
+    puts "input 'q' to quit or anything else to continue"
+    ans = gets.chomp.downcase
+    ans != 'q'
   end
 
   def update_cpu_behavior
@@ -188,15 +225,29 @@ class RPSGame
     Computer::CPUS[computer.name] = new_behavior
   end
 
+  def update
+    update_scores
+    update_cpu_behavior
+  end
+
+  def display_results
+    display_choices
+    display_winner
+  end
+
+  def choose_hands
+    human.choose
+    computer.choose
+  end
+
   def main_loop
     loop do
-      human.choose
-      computer.choose
-      display_choices
-      display_winner
-      update_scores
+      clear_screen
       display_scores
-      update_cpu_behavior
+      display_move_history
+      choose_hands
+      display_results
+      update
       break if grand_winner?
       break unless play_again?
     end
@@ -205,6 +256,7 @@ class RPSGame
   def play
     display_welcome_message
     main_loop
+    clear_screen
     grand_winner? ? display_grand_winner : display_goodbye_message
   end
 end
