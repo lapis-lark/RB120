@@ -1,4 +1,10 @@
+require 'byebug'
+
 module Displayable
+  def clear_screen
+    system('clear')
+  end
+
   def display_welcome_message
     puts "let's play some rock, paper, scissors!"
   end
@@ -18,6 +24,12 @@ module Displayable
     end
   end
 
+  def display_move_history
+    human.move_history.size.times do |i|
+      puts "round #{i + 1}: #{human.move_history[i]} vs. #{computer.move_history[i]} [#{human.victory_history[i]}]"
+    end
+  end
+
   def display_scores
     puts "#{human.name}: #{human.score}"
     puts "#{computer.name}: #{computer.score}"
@@ -33,8 +45,12 @@ module Displayable
 
     puts "final scores:"
     display_scores
+    display_move_history
     puts "thanks for playing ;)"
-    puts human.move_history
+  end
+
+  def display_goodbye_message
+    puts "thanks for playing!"
   end
 end
 
@@ -60,14 +76,13 @@ class Move
   end
 
   def <(other)
-    !(self > other)
+    WIN_CONDITIONS[other.value].include?(value)
   end
 
   def to_s
     value
   end
 end
-
 
 class Player
   attr_reader :move, :name
@@ -80,16 +95,14 @@ class Player
     @victory_history = []
   end
 
-  
-
   private
 
   attr_writer :move, :name
 end
 
 class Human < Player
-  FULL_MOVE = {'r' => 'rock', 'p' => 'paper', 's' => 'scissors',
-                'l' => 'lizard','sp' => 'spock'}
+  FULL_MOVE = { 'r' => 'rock', 'p' => 'paper', 's' => 'scissors',
+                'l' => 'lizard', 'sp' => 'spock' }
   def set_name
     puts "what's your name?"
     self.name = gets.chomp
@@ -110,12 +123,24 @@ class Human < Player
 end
 
 class Computer < Player
+  CPUS = { "randy random" => [Move::VALUES],
+           "it learns" => [Move::VALUES.sample],
+           "it loses" => [Move::VALUES.sample] }
+
   def set_name
-    self.name = %w(Frodo Sauron Pippin Mary).sample
+    choice = nil
+    loop do
+      puts "choose your opponent:"
+      puts CPUS.keys
+      choice = gets.chomp
+      break if CPUS.keys.include?(choice)
+      puts "invalid input. try again."
+    end
+    self.name = choice
   end
 
   def choose
-    choice = Move.new(Move::VALUES.sample)
+    choice = Move.new(CPUS[name].sample)
     self.move = choice
     move_history << choice
   end
@@ -123,7 +148,7 @@ end
 
 class RPSGame
   include Displayable
-  PLAY_TO = 3
+  PLAY_TO = 5
   attr_accessor :human, :computer
 
   def initialize
@@ -145,18 +170,25 @@ class RPSGame
   end
 
   def play_again?
-    ans = nil
-    loop do
-      puts 'play again? (y/n)'
-      ans = gets.chomp
-      break if %w(y n).include?(ans)
-      puts 'invalid input. try again.'
-    end
-    ans == 'y'
+    puts 'input enter to continue anything else to quit early'
+    ans = gets.chomp
+    ans.empty?
   end
 
-  def play
-    display_welcome_message
+  def update_cpu_behavior
+    new_behavior = []
+    case computer.name
+    when 'it learns'
+      Move::VALUES.each { |m| new_behavior << m if human.move < Move.new(m) }
+    when "it loses"
+      Move::VALUES.each { |m| new_behavior << m if human.move > Move.new(m) }
+    else
+      return
+    end
+    Computer::CPUS[computer.name] = new_behavior
+  end
+
+  def main_loop
     loop do
       human.choose
       computer.choose
@@ -164,9 +196,16 @@ class RPSGame
       display_winner
       update_scores
       display_scores
+      update_cpu_behavior
       break if grand_winner?
+      break unless play_again?
     end
-    display_grand_winner
+  end
+
+  def play
+    display_welcome_message
+    main_loop
+    grand_winner? ? display_grand_winner : display_goodbye_message
   end
 end
 
