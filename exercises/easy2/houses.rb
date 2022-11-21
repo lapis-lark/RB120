@@ -5,10 +5,10 @@ class House
   def initialize(price)
     @price = price
   end
+
   def <=>(other)
     price <=> other.price
   end
-  
 end
 
 home1 = House.new(100_000)

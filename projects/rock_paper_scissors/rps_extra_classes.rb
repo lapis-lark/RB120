@@ -1,3 +1,43 @@
+module Displayable
+  def display_welcome_message
+    puts "let's play some rock, paper, scissors!"
+  end
+
+  def display_choices
+    puts "#{human.name} chose #{human.move}"
+    puts "#{computer.name} chose #{computer.move}"
+  end
+
+  def display_winner
+    if human.move > computer.move
+      puts "#{human.name} wins!"
+    elsif computer.move > human.move
+      puts "#{computer.name} wins! better luck next time!"
+    else
+      puts "it's a tie!"
+    end
+  end
+
+  def display_scores
+    puts "#{human.name}: #{human.score}"
+    puts "#{computer.name}: #{computer.score}"
+  end
+
+  def display_grand_winner
+    if human.score == RPSGame::PLAY_TO
+      puts "#{human.name} is the grand champion!"
+    else
+      puts "#{computer.name} is the grand champion!"
+      puts "better luck next time!"
+    end
+
+    puts "final scores:"
+    display_scores
+    puts "thanks for playing ;)"
+    puts human.move_history
+  end
+end
+
 class Move
   WIN_CONDITIONS = { 'rock' => ['scissors', 'lizard'],
                      'paper' => ['rock', 'spock'],
@@ -20,7 +60,7 @@ class Move
   end
 
   def <(other)
-    WIN_CONDITIONS[other.value].include?(value)
+    !(self > other)
   end
 
   def to_s
@@ -28,14 +68,19 @@ class Move
   end
 end
 
+
 class Player
   attr_reader :move, :name
-  attr_accessor :score
+  attr_accessor :score, :move_history, :victory_history
 
   def initialize
     set_name
     @score = 0
+    @move_history = []
+    @victory_history = []
   end
+
+  
 
   private
 
@@ -43,6 +88,8 @@ class Player
 end
 
 class Human < Player
+  FULL_MOVE = {'r' => 'rock', 'p' => 'paper', 's' => 'scissors',
+                'l' => 'lizard','sp' => 'spock'}
   def set_name
     puts "what's your name?"
     self.name = gets.chomp
@@ -51,12 +98,14 @@ class Human < Player
   def choose
     choice = nil
     loop do
-      puts "please enter 'r', 'p', or 's' for rock, paper, or scissors"
+      puts "please enter 'r', 'p', 's', 'l', or 'sp' (rock, paper, scissors, lizard, spock)"
       choice = gets.chomp
-      break if Move::VALUES.include?(choice)
+      break if Move::VALUES.include?(FULL_MOVE[choice])
       puts 'invalid input. try again.'
     end
-    self.move = Move.new(choice)
+    choice = Move.new(FULL_MOVE[choice])
+    self.move = choice
+    move_history << choice
   end
 end
 
@@ -66,11 +115,14 @@ class Computer < Player
   end
 
   def choose
-    self.move = Move.new(Move::VALUES.sample)
+    choice = Move.new(Move::VALUES.sample)
+    self.move = choice
+    move_history << choice
   end
 end
 
 class RPSGame
+  include Displayable
   PLAY_TO = 3
   attr_accessor :human, :computer
 
@@ -79,53 +131,17 @@ class RPSGame
     @computer = Computer.new
   end
 
-  def display_welcome_message
-    puts "Let's play some rock, paper, scissors!"
-  end
-
-  def puts_choices
-    puts "#{human.name} chose #{human.move}"
-    puts "#{computer.name} chose #{computer.move}"
-  end
-
-  def display_winner
-    if human.move > computer.move
-      puts "#{human.name} wins!"
-    elsif computer.move > human.move
-      puts "#{computer.name} wins! better luck next time!"
-    else
-      puts "it's a tie!"
-    end
-  end
-
   def update_scores
     if human.move > computer.move
       human.score += 1
+      human.victory_history << 'won'
     elsif computer.move > human.move
       computer.score += 1
     end
   end
 
-  def display_scores
-    puts "#{human.name}: #{human.score}"
-    puts "#{computer.name}: #{computer.score}"
-  end
-
   def grand_winner?
     [human.score, computer.score].include?(PLAY_TO)
-  end
-
-  def display_grand_winner
-    if human.score == PLAY_TO
-      puts "#{human.name} is the grand champion!"
-    else
-      puts "#{computer.name} is the grand champion!"
-      puts "better luck next time!"
-    end
-
-    puts "final scores:"
-    display_scores
-    puts "Thanks for playing ;)"
   end
 
   def play_again?
@@ -144,7 +160,7 @@ class RPSGame
     loop do
       human.choose
       computer.choose
-      puts_choices
+      display_choices
       display_winner
       update_scores
       display_scores
