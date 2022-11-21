@@ -218,7 +218,7 @@ class RPSGame
     when 'it learns'
       Move::VALUES.each { |m| new_behavior << m if human.move < Move.new(m) }
     when "it loses"
-      Move::VALUES.each { |m| new_behavior << m if human.move > Move.new(m) }
+      new_behavior = Move::WIN_CONDITIONS[human.move.value]
     else
       return
     end
