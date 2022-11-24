@@ -6,7 +6,7 @@ module Displayable
   def display_welcome_message
     clear_screen
     puts "let's play some #{Move::VALUES.join(', ')}!"
-    puts "the first person to #{RPSGame::PLAY_TO} points wins!"
+    puts "the first person to #{self.class::PLAY_TO} points wins!"
     puts "type 'rules' to see the rules or anything else to continue"
     input = gets.chomp.downcase
     display_rules if input == 'rules'
@@ -58,7 +58,7 @@ module Displayable
   end
 
   def display_grand_winner
-    if human.score == RPSGame::PLAY_TO
+    if human.score == self.class::PLAY_TO
       puts "#{human.name} is the grand champion!"
     else
       puts "#{computer.name} is the grand champion!"
