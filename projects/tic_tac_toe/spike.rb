@@ -10,11 +10,7 @@ class Board
     (1..(SIDE**2)).each { |i| squares[i] = Square.new }
   end
 
-  def get_square_at(num)
-    squares[num]
-  end
-
-  def set_square_at(num, marker)
+  def []=(num, marker)
     squares[num] = Square.new(marker)
   end
 
@@ -27,14 +23,14 @@ class Board
   end
 
   def winner?
-    !!detect_winner
+    !!winning_marker
   end
 
   def reset
     (1..(SIDE**2)).each { |i| squares[i] = Square.new }
   end
 
-  def detect_winner
+  def winning_marker
     WIN_CONDITIONS.each do |line|
       winning_mark = squares[line[0]].marker
       winning_sequence = winning_mark * 3
@@ -44,6 +40,30 @@ class Board
       return winning_mark if row_sequence == winning_sequence
     end
     nil
+  end
+
+  def two_of_three_marked(mark)
+    WIN_CONDITIONS.each do |line|
+      two_marks = mark * 2
+      row_sequence = line.map { |s| squares[s].marker }.join
+
+      if row_sequence.count(mark) == 2 && row_sequence.count(' ') == 1
+        return line[row_sequence.chars.index(' ')]
+      end
+    end
+  end
+
+  def display
+    squares = self.squares
+    dividing_line = "-----+-----+-----"
+    padding_line = "     |     |"
+    row1 = "  #{squares[1]}  |  #{squares[2]}  |  #{squares[3]}"
+    row2 = "  #{squares[4]}  |  #{squares[5]}  |  #{squares[6]}"
+    row3 = "  #{squares[7]}  |  #{squares[8]}  |  #{squares[9]}"
+    padded1 = [padding_line, row1, padding_line]
+    padded2 = [padding_line, row2, padding_line]
+    padded3 = [padding_line, row3, padding_line]
+    puts [padded1, dividing_line, padded2, dividing_line, padded3]
   end
 end
 
@@ -65,20 +85,21 @@ class Square
 end
 
 class Player
-  attr_accessor :marker
+  attr_accessor :marker, :score
 
   def initialize(marker)
     @marker = marker
+    @score = 0
     # choose_marker
   end
-
-  def mark; end
 
   def choose_marker
     mark = nil
     loop do
       mark = gets.chomp
-      break
+      break if mark.length == 1 && ![INITIAL_MARKER,
+                                     COMPUTER_MARKER].include(mark)
+      puts 'invalid input. input a non-whitespace single character.'
     end
     self.marker = mark
   end
@@ -93,7 +114,43 @@ class TTTGame
     @board = Board.new
     @human = Player.new('X')
     @computer = Player.new('O')
+    @human_turn = [true, false].sample
   end
+
+  def choose_moves_until_winner
+    loop do
+      current_player_moves
+      break if board.full? || board.winner?
+      clear_screen_and_display_board if human_turn?
+    end
+  end
+
+  def update_scores
+    case board.winning_marker
+    when HUMAN_MARKER then human.score += 1
+    when COMPUTER_MARKER then computer.score += 1
+    end
+  end
+
+  def display_score
+    puts "YOU: #{human.score}   CPU: #{computer.score}"
+  end
+
+  def play
+    display_welcome_message
+    loop do
+      display_board
+      choose_moves_until_winner
+      display_result
+      update_scores
+      break unless play_again?
+      reset
+      display_play_again_message
+    end
+    display_goodbye_message
+  end
+
+  private
 
   def display_welcome_message
     puts "let's play some tic tac toe!\n\n"
@@ -103,10 +160,14 @@ class TTTGame
     puts 'thanks for playing!'
   end
 
+  def joinor(keys)
+    keys[0...-1].join(', ') + " or #{keys[-1]}"
+  end
+
   def human_move
-    puts "choose a square: #{board.unmarked_keys.join(', ')}"
+    puts "choose a square: #{joinor(board.unmarked_keys)}"
     choice = valid_choice
-    board.set_square_at(choice, human.marker)
+    board[choice] = human.marker
   end
 
   def valid_choice
@@ -117,31 +178,51 @@ class TTTGame
     end
   end
 
+  def computer_defense
+    board[board.two_of_three_marked(human.marker)] = computer.marker
+  end
+
+  def computer_offense
+    board[board.two_of_three_marked(computer.marker)] = computer.marker
+  end
+
+  def computer_random
+    board[board.unmarked_keys.sample] = computer.marker
+  end
+
   def computer_move
-    board.set_square_at(board.unmarked_keys.sample, computer.marker)
+    if board.two_of_three_marked(COMPUTER_MARKER)
+      computer_offense
+    elsif board.two_of_three_marked(HUMAN_MARKER)
+      computer_defense
+    else
+      computer_random
+    end
+
+    board[board.unmarked_keys.sample] = computer.marker
   end
 
   def full?
     unmarked_keys.empty?
   end
 
-  def display_board
+  def clear
     system 'clear'
+  end
+
+  def display_board
+    puts display_score
     puts "you are #{human.marker} and the computer is #{computer.marker}"
-    squares = board.squares
-    dividing_line = "-----+-----+-----"
-    padding_line = "     |     |"
-    row1 = "  #{squares[1]}  |  #{squares[2]}  |  #{squares[3]}"
-    row2 = "  #{squares[4]}  |  #{squares[5]}  |  #{squares[6]}"
-    row3 = "  #{squares[7]}  |  #{squares[8]}  |  #{squares[9]}"
-    padded1 = [padding_line, row1, padding_line]
-    padded2 = [padding_line, row2, padding_line]
-    padded3 = [padding_line, row3, padding_line]
-    puts [padded1, dividing_line, padded2, dividing_line, padded3]
+    board.display
+  end
+
+  def clear_screen_and_display_board
+    clear
+    display_board
   end
 
   def display_result
-    puts case board.detect_winner
+    puts case board.winning_marker
          when HUMAN_MARKER then 'you win!'
          when COMPUTER_MARKER then 'the computer wins!'
          else "it's a draw!"
@@ -149,30 +230,33 @@ class TTTGame
   end
 
   def play_again?
-      puts 'would you like to play again?'
-      puts "input 'y' to play again or anything else to quit"
-      ans = gets.chomp.downcase
-      ans == 'y'
+    puts 'would you like to play again?'
+    puts "input 'y' to play again or anything else to quit"
+    ans = gets.chomp.downcase
+    ans == 'y'
   end
 
-  def play
-    display_welcome_message
-    loop do
-      display_board
-      loop do
-        human_move
-        break if board.full? || board.winner?
-
-        computer_move
-        break if board.full? || board.winner?
-
-        display_board
-      end
-      display_result
-      play_again? ? board.reset : break
-    end
-    display_goodbye_message
+  def reset
+    board.reset
+    clear
   end
+
+  def display_play_again_message
+    puts "let's play again ^^"
+    puts
+  end
+
+  def current_player_moves
+    # byebug
+    human_turn ? human_move : computer_move
+    self.human_turn = !human_turn
+  end
+
+  def human_turn?
+    human_turn
+  end
+
+  attr_accessor :human_turn
 end
 
 game = TTTGame.new

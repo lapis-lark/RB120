@@ -182,7 +182,6 @@ end
 class RPSGame
   include Displayable
   PLAY_TO = 5
-  attr_accessor :human, :computer
 
   def initialize
     @human = Human.new
@@ -259,6 +258,9 @@ class RPSGame
     clear_screen
     grand_winner? ? display_grand_winner : display_goodbye_message
   end
+
+  private
+  attr_accessor :human, :computer
 end
 
 RPSGame.new.play
