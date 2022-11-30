@@ -1,7 +1,87 @@
 require 'byebug'
-
 module Displayable
+  RESULT_MESSAGES = { player: 'congratulations, you win!',
+                      dealer: 'the dealer wins. better luck next time!',
+                      tie: 'you tied!' }
+  private
 
+  def display_welcome_message
+    clear_screen
+    puts "lets play some 21!\n\n"
+    puts "enter 'r' for the rules or anything else to continue"
+    ans = gets.chomp.downcase
+    display_rules if ans == 'r'
+    puts
+  end
+
+  def clear_screen
+    system('clear')
+  end
+
+  def display_player_hit
+    puts 'you hit!'
+    puts "you drew a #{player.hand[-1]} "\
+         "and your new score is #{player.score_hand}"
+    puts "you bust!" if player.bust?
+    puts 'press enter to continue'
+    gets
+  end
+
+  def dealer_hit
+    puts "the dealer hits!"
+    dealer.hit(deck)
+    puts "it's a #{dealer.hand[-1]}!"
+    puts "dealer's new hand value: #{dealer.score_hand}"
+    puts "the dealer bust!" if dealer.bust?
+    puts "press enter to continue"
+    gets
+    display_dealer_hand
+  end
+
+  def display_dealer_hand
+    clear_screen
+    puts "dealer hand:"
+    dealer.display_hand
+    puts
+  end
+
+  def display_hands_and_total
+    clear_screen
+    puts "dealer's hand:"
+    puts "  #{dealer.hand.sample}\n  unknown card\n\n"
+    puts "your hand:"
+    player.display_hand
+    puts
+  end
+
+  def display_rules
+    rules = <<~MSG
+try to get a higher score than the dealer without going over 21.
+you can either "hit" to get another card or "stay" to compete with your current cards.
+a score over 21 means you "bust" (lose).
+the dealer must hit until their score is 17 or more.
+aces are worth 11 unless they would cause you to bust; in this case, they are worth 1.
+press enter to continue
+MSG
+    puts rules
+    gets
+  end
+
+  def display_goodbye_message
+    puts
+    puts "thanks for playing!"
+  end
+
+  def display_winner
+    clear_screen
+    puts RESULT_MESSAGES[determine_results]
+    puts "final hands:\n\n"
+    puts "dealer:"
+    dealer.display_hand
+    puts
+    puts "you:"
+    player.display_hand
+  end
 end
 
 module Hand
@@ -36,8 +116,7 @@ module Hand
     end
   end
 
-  # aces are scored last to prevent them accidentally being scored as 11
-  # and causing bust? to trigger
+  # calculating aces last allows them to switch from "soft" to "hard"
   def score_hand
     total = 0
     aces, other_cards = hand.partition do |card|
@@ -49,15 +128,13 @@ module Hand
   end
 end
 
-
-
 class Player
   attr_accessor :stay
 
   include Hand
   def initialize
     @stay = false
-    self.hand = []
+    @hand = []
   end
 end
 
@@ -93,6 +170,7 @@ class Card
 end
 
 class TwentyOneGame
+  include Displayable
 
   def play
     display_welcome_message
@@ -101,28 +179,13 @@ class TwentyOneGame
   end
 
   private
+
   attr_accessor :player, :dealer, :deck
-  RESULT_MESSAGES = { player: 'congratulations, you win!',
-  dealer: 'the dealer wins. better luck next time!',
-  tie: 'you tied!' }
 
   def initialize
     @player = Player.new
     @dealer = Player.new
     @deck = Deck.new
-  end
-
-  def clear_screen
-    system('clear')
-  end
-
-  def display_welcome_message
-    clear_screen
-    puts "lets play some 21!\n\n"
-    puts "enter 'r' for the rules or anything else to continue"
-    ans = gets.chomp.downcase
-    display_rules if ans == 'r'
-    puts
   end
 
   def turns
@@ -156,7 +219,7 @@ class TwentyOneGame
     ans = choose_to_hit_or_stay
     if ans == 'h'
       player.hit(deck)
-      display_hit
+      display_player_hit
     else
       player.make_stay
       puts 'you stay'
@@ -173,15 +236,6 @@ class TwentyOneGame
     end
   end
 
-  def display_hit
-    puts 'you hit!'
-    puts "you drew a #{player.hand[-1]} "\
-         "and your new score is #{player.score_hand}"
-    puts "you bust!" if player.bust?
-    puts 'press enter to continue'
-    gets
-  end
-
   def dealer_turn
     display_dealer_hand
     until dealer.score_hand >= 17
@@ -194,24 +248,6 @@ class TwentyOneGame
     gets
   end
 
-  def dealer_hit
-    puts "the dealer hits!"
-    dealer.hit(deck)
-    puts "it's a #{dealer.hand[-1]}!"
-    puts "dealer's new hand value: #{dealer.score_hand}"
-    puts "the dealer bust!" if dealer.bust?
-    puts "press enter to continue"
-    gets
-    display_dealer_hand
-  end
-
-  def display_dealer_hand
-    clear_screen
-    puts "dealer hand:"
-    dealer.display_hand
-    puts
-  end
-
   def quit?
     puts
     puts "do you want to quit?"
@@ -222,30 +258,10 @@ class TwentyOneGame
 
   def reset
     [player, dealer].each do |p|
-       p.hand = [] 
-       p.stay = false
+      p.hand = []
+      p.stay = false
     end
     self.deck = Deck.new
-  end
-
-  def display_hands_and_total
-    clear_screen
-    puts "dealer's hand:"
-    puts "  #{dealer.hand.sample}\n  unknown card\n\n"
-    puts "your hand:"
-    player.display_hand
-    puts
-  end
-
-  def display_winner
-    clear_screen
-    puts RESULT_MESSAGES[determine_results]
-    puts "final hands:\n\n"
-    puts "dealer:"
-    dealer.display_hand
-    puts
-    puts "you:"
-    player.display_hand
   end
 
   def determine_results
@@ -257,26 +273,6 @@ class TwentyOneGame
     return :dealer if dealer_score > player_score
     :tie
   end
-
-  def display_goodbye_message
-    puts
-    puts "thanks for playing!"
-  end
-
-  def display_rules
-    rules = <<~MSG
-try to get a higher score than the dealer without going over 21.
-you can either "hit" to get another card or "stay" to compete with your current cards.
-a score over 21 means you "bust" (lose).
-the dealer must hit until their score is 17 or more.
-aces are worth 11 unless they would cause you to bust; in this case, they are worth 1.
-press enter to continue
-MSG
-    puts rules
-    gets
-  end
 end
 
 TwentyOneGame.new.play
-Player.ancestors
-p TwentyOneGame::RESULT_MESSAGES
