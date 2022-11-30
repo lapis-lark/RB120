@@ -206,7 +206,6 @@ round_wins = { player: 0, dealer: 0 }
 loop do
   deal_hands(deck, hands)
   display_round_wins(round_wins)
-  byebug
   total = { player: score_hand(hands[:player]),
             dealer: score_hand(hands[:dealer]) }
 
