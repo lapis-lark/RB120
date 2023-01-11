@@ -30,7 +30,7 @@ module DoesItRock
 
       positive / (positive + negative)
     rescue StandardError
-      exit
+      NoScore
     end
   end
 
